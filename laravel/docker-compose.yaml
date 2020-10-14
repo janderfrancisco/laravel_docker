@@ -1,0 +1,69 @@
+version: '3'
+   
+networks: 
+    app-network:
+        driver: bridge
+
+services:
+    app:
+        build: . # pega a partir do docker file quando coloca ponto
+        container_name: app
+        entrypoint: dockerize -wait tcp://db:3306 -timeout 40s ./.docker/entrypoint.sh
+        environment: 
+            - DB_HOST=db
+            - DB_DATABASE=laravel 
+            - DB_USERNAME=root
+            - DB_PASSWORD=root
+        volumes: 
+            - .:/var/www
+        networks: 
+            - app-network
+        depends_on: 
+            - db
+            - redis
+      
+    nginx:
+        build: .docker/nginx # caminho onde está 
+        container_name: nginx
+        working_dir: /var/www
+        entrypoint: dockerize -template ./.docker/nginx/nginx.conf:/etc/nginx/conf.d/nginx.conf -timeout 10s ./.docker/nginx/entrypoint.sh
+        environment:
+          - NGINX_HOST=app
+          - NGINX_PORT=9000
+        restart: always  # reinicia o container se cair
+        tty: true # se pode entrar de forma interativa dentro do container --it 
+        ports:
+            - "8000:80" # ex: localhost:8000 está acessando a porta 80 do nginx
+        volumes:
+            - .:/var/www
+        networks: 
+            - app-network
+        depends_on: 
+            - app   
+             
+    redis:
+        image: redis:alpine
+        expose:
+            - 6379
+        networks: 
+            - app-network
+    
+    db:
+        build: .docker/mysql
+        command: --innodb-use-native-aio=0
+        container_name: db
+        restart: always
+        tty: true
+        ports: 
+            - "3306:3306"
+        volumes: 
+            - ./.docker/dbdata:/var/lib/mysql # salva tudo do mysql na pasta dbdata
+        environment: 
+            - MYSQL_DATABASE=laravel
+            - MYSQL_ROOT_PASSWORD=root 
+            - MYSQL_USER=root
+        networks: 
+            - app-network 
+
+
+ 
