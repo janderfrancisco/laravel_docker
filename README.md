@@ -1,4 +1,4 @@
 
 # Docker Image Laravel
 
-https://hub.docker.com/repository/docker/janderfrancisco/laravel_docker
+https://hub.docker.com/r/janderfrancisco/laravel_docker
